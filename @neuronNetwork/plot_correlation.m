@@ -30,17 +30,18 @@ figure('Position',[10,10,900,800],'Color','w')
 imagesc(D)
 colormap(redblue)
 ylabel(colorbar,'Pearsons R');
-caxis([-.4,.4])
+caxis([-.5,.5])
 pbaspect([1 1 1])
 ylabel('Presynaptic Index')
 xlabel('Postsynaptic Index')
 title('Correlation')
+% prctile(D,95,'all')
 o.saveCurrentFigure('correlationMatrix')
 
 
 
 figure('Position',[10,10,900,800],'Color','w')
-g = gramm('x',D(:),'color',sign(o.W(:)));
+g = gramm('x',D(~eye(o.N)),'color',sign(o.W(~eye(o.N))));
 g.stat_density()
 % g.stat_bin('normalization','pdf','nbins',100,'fill','transparent','geom','stairs')
 g.set_names('x','Correlation','color','Sign of connection');
@@ -50,7 +51,7 @@ o.saveCurrentFigure('correlationHistogram-Sign')
 
 
 figure('Position',[10,10,900,800],'Color','w')
-g = gramm('x',D(:));
+g = gramm('x',D(~eye(o.N)));
 g.stat_bin('normalization','pdf','nbins',200,'fill','face','geom','stairs')
 g.set_names('x','Correlation','y','Correlation pdf');
 g.axe_property('XLim',[-1,1])

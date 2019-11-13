@@ -25,22 +25,44 @@ out_cluster_p = in_cluster_p / o.cluster_p_ratio;
 connectMask = repmat(out_cluster_p, o.Ne); % mask of connection probabilities
 weightsMask = repmat(o.W_ee,        o.Ne); % mask of weights
 
-% Set the clusters
-edges = round(linspace(1,o.Ne,o.clusters + 1));
-for i = 1:o.clusters
-    connectMask(edges(i):edges(i+1), edges(i):edges(i+1)) = in_cluster_p;
-    weightsMask(edges(i):edges(i+1), edges(i):edges(i+1)) = o.W_ee * o.cluster_w_ratio;
-end
 
 
 % Use bernoulli to set the probabilities, exponential to set the weights
 
 switch p.Results.type
     case 'random'
+        % Set the clusters
+        edges = round(linspace(1,o.Ne,o.clusters + 1));
+        for i = 1:o.clusters
+            connectMask(edges(i):edges(i+1), edges(i):edges(i+1)) = in_cluster_p;
+            weightsMask(edges(i):edges(i+1), edges(i):edges(i+1)) = o.W_ee * o.cluster_w_ratio;
+        end
         W(o.excitatory_idx, o.excitatory_idx) = (rand(o.Ne,o.Ne) < connectMask) .* exprnd(weightsMask);
+        
+    case 'ring'
+        connectMask = repmat(out_cluster_p, o.Ne); % mask of connection probabilities
+        weightsMask = repmat(o.W_ee,        o.Ne); % mask of weights
+        mask = ~tril(ones(o.Ne), -floor(o.Ne/o.clusters)) & ~triu(ones(o.Ne), floor(o.Ne/o.clusters));
+        mask = mask | tril(ones(o.Ne), -floor(o.Ne - o.Ne/o.clusters));
+        mask = mask | triu(ones(o.Ne), floor(o.Ne - o.Ne/o.clusters));
+        connectMask(mask) = in_cluster_p;
+        weightsMask(mask) = o.W_ee * o.cluster_w_ratio;
+        W(o.excitatory_idx, o.excitatory_idx) = (rand(o.Ne,o.Ne) < connectMask) .* exprnd(weightsMask);
+  
+        
+    case 'sheet'
+        x = repmat( [1:sqrt(o.Ne)]', floor(sqrt(o.Ne)),1);
+        y = repelem([1:sqrt(o.Ne)]', floor(sqrt(o.Ne)),1);
+        dist = pdist2([x,y],[x,y]);
+        dist = rescale(-dist).^2;
+        dist = dist * o.p_ee / mean(dist,'all');
+        connectMask(1:floor(sqrt(o.Ne))^2, 1:floor(sqrt(o.Ne))^2) = dist;
+        W(o.excitatory_idx, o.excitatory_idx) = (rand(o.Ne,o.Ne) < connectMask) .* exprnd(weightsMask);
+
     case 'WattsStrogatz'
-        beta = .6;
+        beta = o.cluster_p_ratio / (o.cluster_p_ratio + 1);
         W(o.excitatory_idx, o.excitatory_idx) = WattsStrogatz(o.Ne, round(o.p_ee*o.Ne), beta) .* exprnd(weightsMask);
+   
     case 'BarabasiAlbert'
         beta = .1;
         W(o.excitatory_idx, o.excitatory_idx) =BarabasiAlbert(o.Ne, round(o.p_ee*o.Ne), beta) .* exprnd(weightsMask);

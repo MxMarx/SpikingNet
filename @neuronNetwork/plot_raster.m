@@ -27,4 +27,26 @@ g.set_order_options('x',0);
 g.set_names('x','Time (ms)','y','Cell Index','color','Cell type');
 g.draw;
 
+
+pos = get(g.facet_axes_handles, 'Position');
+yl = ylim(g.facet_axes_handles);
+xl = xlim(g.facet_axes_handles);
+for i = 0:500:o.t_span
+    % Positins for the end of the Arrow in data units.
+    xPosition = i;
+    yPosition = -100;
+    HWHM = i;
+    HM = -60;
+    % Create a textarrow annotation at the coordinates in data units
+    % the textarrow coordinates are given [end_x, head_x], [end_y, head_y]
+    ta1 = annotation('textarrow',...
+        [(xPosition + abs(min(xl)))/diff(xl) * pos(3) + pos(1),...
+        (HWHM + abs(min(xl)))/diff(xl) * pos(3) + pos(1) ],...
+        [(yPosition - min(yl))/diff(yl) * pos(4) + pos(2),...
+        (HM - min(ylim))/diff(yl) * pos(4) + pos(2)]);
+end
+
+    
+
+
 o.saveCurrentFigure('raster')

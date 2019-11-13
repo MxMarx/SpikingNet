@@ -1,30 +1,39 @@
 clear all
 o = neuronNetwork;
-o.p_ee = .15
+o.p_ee = .18
 
 % o.W_ee = .025
 % o.W_ie = -.3
 % o.W_ii = -.15
 % o.W_ei = .15
 o.mu_e_range = .92;
-o.mu_i_range = .9;
+o.mu_i_range = .92;
 o.dt = .2
 
 o.N = 1024
-o.cluster_p_ratio = 4
-o.clusters = 12;
-o.cluster_w_ratio = 2.2;
-o.t_span = 8000;
+o.cluster_p_ratio = 3
+o.clusters = 14;
+o.cluster_w_ratio = 1.42;
+o.t_span = 10000;
 % o.constructNetwork('type','BarabasiAlbert')
-% o.constructNetwork('type','WattsStrogatz')
-o.constructNetwork
+o.constructNetwork('type','WattsStrogatz')
+% o.constructNetwork
 o.simulateNetwork('plasticity',0)
 o.plot_raster('sort','none')
 
 
 
 o.saveFigures = true;
-o.saveDirectory = 'C:\Users\russe\OneDrive - UW\Grad School\Fairhall Lab\figures\Clustered'
+o.saveDirectory = 'C:\Users\russe\OneDrive - UW\Grad School\Fairhall Lab\figures\Stimulation\ring_mu.92_3'
+o.plot_raster('sort','none')
+o.plot_weights
+o.plot_mean_voltage
+o.plot_periodogram
+o.plot_correlation
+close all
+
+
+
 o.plot_weights
 o.plot_degree
 

@@ -55,8 +55,12 @@ for i = 1:o.t_span/o.dt
     
     
     % Stimulate the network
-    if ~mod(i+10,round(1000/o.dt))
-        Isyn(randsample(1:o.Ne, round(o.Ne/8))) = 1 / o.dt;
+    if ~mod(i+500/o.dt,round(500/o.dt))
+        inputIdx = randsample(1:o.Ne, round(o.Ne/40));
+%         inputIdx = randsample(1:o.Ne-o.Ne/10,1);
+%         inputIdx = inputIdx:2:inputIdx+round(o.Ne/10);
+
+        Isyn(inputIdx) = Isyn(inputIdx) + 1 / o.dt;
     end
 %     
 %     if ~mod(i,round(500/o.dt))
@@ -113,9 +117,10 @@ for i = 1:o.t_span/o.dt
     
     
     if ~mod(i,1000)
-        disp(i / (o.t_span/o.dt))
 %         disp(nnz(o.W(o.excitatory_idx,o.excitatory_idx)))
-        disp(sum(refract_counter > 0))
+        fprintf('%-10.3f %10g\n',...
+            i / (o.t_span/o.dt),...
+            sum(refract_counter > 0))
     end
 end
 
