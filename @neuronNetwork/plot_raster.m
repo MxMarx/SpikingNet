@@ -20,8 +20,18 @@ switch p.Results.sort
         sortOrder = 1:o.N;
 end
 
+color = zeros(o.N,1);
+edges = round(linspace(1,o.Ne,o.clusters + 1));
+for i = 1:o.clusters
+    color(edges(i):edges(i+1)) = i;
+end
+
+color = max(color) - color;
+
 figure('Position',[10,10,1000,800])
-g = gramm('x',o.spikes(sortOrder),'color',o.neuron_names(sortOrder));
+% g = gramm('x',o.spikes(sortOrder),'color',o.neuron_names(sortOrder));
+g = gramm('x',o.spikes(sortOrder),'color',color(sortOrder));
+
 g.geom_raster('geom','line');
 g.set_order_options('x',0);
 g.set_names('x','Time (ms)','y','Cell Index','color','Cell type');
@@ -31,7 +41,7 @@ g.draw;
 pos = get(g.facet_axes_handles, 'Position');
 yl = ylim(g.facet_axes_handles);
 xl = xlim(g.facet_axes_handles);
-for i = 0:500:o.t_span
+for i = []%500
     % Positins for the end of the Arrow in data units.
     xPosition = i;
     yPosition = -100;

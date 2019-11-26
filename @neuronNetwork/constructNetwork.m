@@ -10,6 +10,12 @@ o.Ni = o.N - o.Ne;
 o.excitatory_idx = 1:o.Ne;
 o.inhibitory_idx = o.Ne+1:o.N;
 
+% Nornalize connection probability for network size
+o.p_ee = o.p_ee / o.N;
+o.p_ei = o.p_ei / o.N;
+o.p_ie = o.p_ie / o.N;
+o.p_ii = o.p_ii / o.N;
+
 
 % Make the connectivity matrix
 W = sparse(o.N);
@@ -49,7 +55,6 @@ switch p.Results.type
         weightsMask(mask) = o.W_ee * o.cluster_w_ratio;
         W(o.excitatory_idx, o.excitatory_idx) = (rand(o.Ne,o.Ne) < connectMask) .* exprnd(weightsMask);
   
-        
     case 'sheet'
         x = repmat( [1:sqrt(o.Ne)]', floor(sqrt(o.Ne)),1);
         y = repelem([1:sqrt(o.Ne)]', floor(sqrt(o.Ne)),1);

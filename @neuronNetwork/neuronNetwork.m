@@ -3,6 +3,10 @@ classdef neuronNetwork < handle
     %   Detailed explanation goes here
     
     properties
+        
+        DLM = [];
+        stimulusTrain = [];
+        
         %% Set the options
         
         % Save figures
@@ -19,11 +23,16 @@ classdef neuronNetwork < handle
         cluster_p_ratio = 2.5;
         cluster_w_ratio = 1.9; % ratio of within/between cluster weights
         
-        %define probabilities of connection:
-        p_ee = .1;
-        p_ii = .2;
-        p_ei = .2; %probablity of excitatory neuron connecting to inhibitory neuron
-        p_ie = .2; %probablity of inhibitory neuron connecting to excitatory neuron
+        %define numbers of connections per neuron of connection:
+        p_ee = 100;
+        p_ii = 200;
+        p_ei = 200; %probablity of excitatory neuron connecting to inhibitory neuron
+        p_ie = 200; %probablity of inhibitory neuron connecting to excitatory neuron
+%         %define probabilities of connection:
+%         p_ee = .1;
+%         p_ii = .2;
+%         p_ei = .2; %probablity of excitatory neuron connecting to inhibitory neuron
+%         p_ie = .2; %probablity of inhibitory neuron connecting to excitatory neuron
         
         %define connection strengths:
         W_ee = 0.024;
