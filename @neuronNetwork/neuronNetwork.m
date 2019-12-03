@@ -66,7 +66,7 @@ classdef neuronNetwork < handle
         dt = .2; %time step in units of ms.
         
         %build the additive waveform that follows a spike:
-        tau1 = 1;
+        tau1 = 0.5;
         tau2_e = 3;
         tau2_i = 2;
         

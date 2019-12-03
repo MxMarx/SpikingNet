@@ -1,4 +1,5 @@
 function o = simulateNetwork(o)
+% rng('default')
 
 
 %% Now simulate the dyamics with Euler!
@@ -50,9 +51,6 @@ for i = 1:o.t_span/o.dt
     
     v_old = V; %keep record of previous value
     
-    
-    %     % Stimulate the network
-    %     Isyn(inputIdx:inputIdx+24) = Isyn(inputIdx:inputIdx+24) + stimulusTrain(:,i);
     Isyn(1:o.Ne) = Isyn(1:o.Ne) + stimulusTrain(:,i)*o.W_ee*4;
     
     
@@ -107,22 +105,29 @@ stimulusTrain = cumsum(-stimulusTrain, 2)+1;
 inputClusters = 8;
 
 clustedInput = {};
-DLMOutputCluster = []; edges = round(linspace(1,o.Ne,inputClusters + 1));
+DLMOutputCluster = [];
+edges = round(linspace(1,o.Ne,inputClusters + 1));
+
+time_padding = 250;
+time_padding = 10;
 
 for i = 1:inputClusters
     % Circularly shift the input, and pad with 500ms of zeros
     shift = randi(length(stimulusTrain),1);
-    shift = 1;
-    clusterInput{i} = [zeros(length(o.DLM), 100/o.dt),...
+%     shift = 1;
+    clusterInput{i} = [zeros(length(o.DLM), time_padding/o.dt),...
         circshift(stimulusTrain,shift,2)];
     DLMOutputCluster(edges(i):edges(i+1)) = i;
 end 
 
 stimulusTrain = {};
 % rng('default')
-for j = 1:ceil(o.t_span / 730)
+
+k2 = randi(25);
+for j = 1:ceil(o.t_span / (630+time_padding))
     for i = 1:inputClusters
         k = randi(25);
+        k = mod(k2+i,24)+1;
         stimulusTrain{i,j} = datasample(clusterInput{i}([k,k],:), sum(DLMOutputCluster==i));
 %         stimulusTrain{i,j} = datasample(clusterInput{i}, sum(DLMOutputCluster==i));
 
@@ -132,7 +137,8 @@ for j = 1:ceil(o.t_span / 730)
     end
 end
 stimulusTrain = cell2mat(stimulusTrain);
-stimulusTrain(randi(750,200,1), :) = 0;
+stimulusTrain = stimulusTrain(:, 1:round(o.t_span/o.dt));
+stimulusTrain(randsample(o.Ne,round(o.Ne*0.8)), :) = 0;
 
 % Put the spikes in a cell array
 spikes = cell(size(o.Ne));
@@ -144,7 +150,5 @@ o.stimulusTrain = spikes;
 
 stimulusTrain = min(stimulusTrain, length(epsp));
 stimulusTrain = max(stimulusTrain, 1);
-
-
 stimulusTrain = epsp(stimulusTrain);
 

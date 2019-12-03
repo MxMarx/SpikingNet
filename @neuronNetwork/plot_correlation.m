@@ -26,15 +26,23 @@ D(isnan(D))=0;
 
 
 
-figure('Position',[10,10,900,800],'Color','w')
-imagesc(D)
-colormap(redblue)
-ylabel(colorbar,'Pearsons R');
-caxis([-.5,.5])
+figure('Position',[10,10,900,800],'Color','k')
+% im = imagesc(D,'AlphaData',min(abs(-D)*10,1),'AlphaDataMapping','none')
+im = imagesc(D)
+colormap(flipud(1-redblue(255)))
+h = colorbar
+h.Color = 'w'
+ylabel(h,'Pearsons R','Color','w');
+
+caxis([-1,1])
 pbaspect([1 1 1])
-ylabel('Presynaptic Index')
-xlabel('Postsynaptic Index')
+ylabel('Presynaptic Index','Color','w')
+xlabel('Postsynaptic Index','Color','w')
 title('Correlation')
+im.Parent.Color = [0 0 0 0]
+im.Parent.XColor = 'w'
+im.Parent.YColor = 'w'
+
 % prctile(D,95,'all')
 o.saveCurrentFigure('correlationMatrix')
 

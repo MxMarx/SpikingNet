@@ -1,4 +1,4 @@
-function plot_raster(o,varargin)
+function g = plot_raster(o,varargin)
 
 p = inputParser;
 p.addParameter('sort','none', @(x) any(validatestring(x,{'cluster','rate','none'})));
@@ -28,13 +28,12 @@ end
 
 color = max(color) - color;
 
-figure('Position',[10,10,1000,800])
+figure('Position',[10,10,1500,800])
 % g = gramm('x',o.spikes(sortOrder),'color',o.neuron_names(sortOrder));
 g = gramm('x',o.spikes(sortOrder),'color',color(sortOrder));
-
+g.set_continuous_color('active',0);
 g.geom_raster('geom','line');
-g.set_order_options('x',0);
-g.set_names('x','Time (ms)','y','Cell Index','color','Cell type');
+g.set_names('x','Time (ms)','y','Cell Index','color','Cluster');
 g.draw;
 
 
