@@ -94,61 +94,52 @@ o.spikes = spikes;
 
 function stimulusTrain = generateStimulusTrain(o, epsp)
 %% Generate the output from DLM bu converting spike timings to EPSPs
-stimulusTrain = repmat(-1,length(o.DLM),round(630/o.dt));
+stimulusTrain = false(length(o.DLM),round(630/o.dt));
 for i = 1:length(o.DLM)
-    y = ceil([0; o.DLM{i}'] / o.dt);
-    y(diff(y)==0) = [];
-    stimulusTrain(i,y(2:end)) = diff(y) - 1;
+    y = ceil(o.DLM{i} / o.dt);
+    stimulusTrain(i,y) = 1;
 end
-stimulusTrain = cumsum(-stimulusTrain, 2)+1;
 
 inputClusters = 8;
 
 clustedInput = {};
-DLMOutputCluster = [];
-edges = round(linspace(1,o.Ne,inputClusters + 1));
 
-time_padding = 250;
 time_padding = 10;
 
 for i = 1:inputClusters
     % Circularly shift the input, and pad with 500ms of zeros
     shift = randi(length(stimulusTrain),1);
-%     shift = 1;
+    %     shift = 1;
     clusterInput{i} = [zeros(length(o.DLM), time_padding/o.dt),...
         circshift(stimulusTrain,shift,2)];
-    DLMOutputCluster(edges(i):edges(i+1)) = i;
-end 
-
-stimulusTrain = {};
-% rng('default')
+end
+DLMOutputCluster = floor(linspace(1,inputClusters+1,o.Ne+1));
 
 k2 = randi(25);
-for j = 1:ceil(o.t_span / (630+time_padding))
-    for i = 1:inputClusters
+stimulusTrain = {};
+for i = 1:inputClusters
+    for j = 1:ceil(o.t_span / (630+time_padding))
+        
         k = randi(25);
         k = mod(k2+i,24)+1;
         stimulusTrain{i,j} = datasample(clusterInput{i}([k,k],:), sum(DLMOutputCluster==i));
-%         stimulusTrain{i,j} = datasample(clusterInput{i}, sum(DLMOutputCluster==i));
-
-%         for k = 1:2
-%         stimulusTrain{i,j} = stimulusTrain{i,j} + datasample(clusterInput{i}, sum(DLMOutputCluster==i));
-%         end
+        %         stimulusTrain{i,j} = datasample(clusterInput{i}, sum(DLMOutputCluster==i));
+        
     end
 end
+
 stimulusTrain = cell2mat(stimulusTrain);
 stimulusTrain = stimulusTrain(:, 1:round(o.t_span/o.dt));
-stimulusTrain(randsample(o.Ne,round(o.Ne*0.8)), :) = 0;
+stimulusTrain = stimulusTrain .* (rand(size(stimulusTrain)) > .8);
 
-% Put the spikes in a cell array
-spikes = cell(size(o.Ne));
+o.stimulusTrain = cell(size(o.Ne));
 for i = 1:o.Ne
-    spikes{i} = find(stimulusTrain(i,:)==1) * o.dt;
+    o.stimulusTrain{i} = find(stimulusTrain(i,:)) * o.dt;
 end
-o.stimulusTrain = spikes;
+
+stimulusTrain = conv2(stimulusTrain,epsp);
 
 
-stimulusTrain = min(stimulusTrain, length(epsp));
-stimulusTrain = max(stimulusTrain, 1);
-stimulusTrain = epsp(stimulusTrain);
+
+
 

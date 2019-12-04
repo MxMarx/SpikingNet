@@ -1,21 +1,22 @@
 for j = 1:2
+    rng(1)
     o = neuronNetwork;
     o.p_ee = 20
     o.p_ii = 4;
     o.p_ie = 80;
     o.p_ei = 12
-    o.V_reset = -0.5
+    o.V_reset = -.5
     % raster = ExtractRaster()
     o.refractory = 1;
-    o.mu_e_range = [.7 .9];
+    o.mu_e_range = [.8 .9];
     o.mu_i_range = [.7 .9];
     o.dt = .2;
-    o.W_ee = .12;
+    o.W_ee = .1;
     o.W_ii = -.4;
     o.W_ei = .1
     o.W_ie = -.2
     o.N = 1000;
-    o.cluster_p_ratio = 20;
+    o.cluster_p_ratio = 16;
     o.clusters = 8;
     o.cluster_w_ratio = 1;
     o.t_span = 8959;
@@ -39,7 +40,7 @@ end
 
 figure
 g = gramm('x', LMANISI,'color', {'Directed','Undirected'})
-g.stat_bin('edges',0:1:100,'normalization','count','geom','stairs','fill','transparent')
+g.stat_bin('edges',0:1:100,'normalization','pdf','geom','stairs','fill','transparent')
 g.set_names('x','LMAN ISI (ms)','y','Probability density','color','Song type')
 g.draw
 
