@@ -9,9 +9,6 @@ ipsp = (1/(o.tau2_i-o.tau1))*(exp(-spike_timespan/o.tau2_i) - exp(-spike_timespa
 epsp(end+1) = 0;
 ipsp(end+1) = 0;
 
-stimulusTrain = generateStimulusTrain(o, epsp);
-
-
 %define vector of inital cell voltages:
 V = rand(length(o.W),1)+.2;
 
@@ -51,8 +48,10 @@ for i = 1:o.t_span/o.dt
     
     v_old = V; %keep record of previous value
     
-    Isyn(1:o.Ne) = Isyn(1:o.Ne) + stimulusTrain(:,i)*o.W_ee*4;
-    
+    % DLM input
+    if ~isempty(o.stimulusMatrix)
+        Isyn(1:o.Ne) = Isyn(1:o.Ne) + o.stimulusMatrix(:,i);
+    end
     
     V = V + o.dt*((1./o.tau).*(o.mu - V) + Isyn);
     
@@ -92,52 +91,7 @@ o.spikes = spikes;
 
 
 
-function stimulusTrain = generateStimulusTrain(o, epsp)
-%% Generate the output from DLM bu converting spike timings to EPSPs
-stimulusTrain = false(length(o.DLM),round(630/o.dt));
-for i = 1:length(o.DLM)
-    y = ceil(o.DLM{i} / o.dt);
-    stimulusTrain(i,y) = 1;
-end
 
-inputClusters = 8;
-
-clustedInput = {};
-
-time_padding = 10;
-
-for i = 1:inputClusters
-    % Circularly shift the input, and pad with 500ms of zeros
-    shift = randi(length(stimulusTrain),1);
-    %     shift = 1;
-    clusterInput{i} = [zeros(length(o.DLM), time_padding/o.dt),...
-        circshift(stimulusTrain,shift,2)];
-end
-DLMOutputCluster = floor(linspace(1,inputClusters+1,o.Ne+1));
-
-k2 = randi(25);
-stimulusTrain = {};
-for i = 1:inputClusters
-    for j = 1:ceil(o.t_span / (630+time_padding))
-        
-        k = randi(25);
-        k = mod(k2+i,24)+1;
-        stimulusTrain{i,j} = datasample(clusterInput{i}([k,k],:), sum(DLMOutputCluster==i));
-        %         stimulusTrain{i,j} = datasample(clusterInput{i}, sum(DLMOutputCluster==i));
-        
-    end
-end
-
-stimulusTrain = cell2mat(stimulusTrain);
-stimulusTrain = stimulusTrain(:, 1:round(o.t_span/o.dt));
-stimulusTrain = stimulusTrain .* (rand(size(stimulusTrain)) > .8);
-
-o.stimulusTrain = cell(size(o.Ne));
-for i = 1:o.Ne
-    o.stimulusTrain{i} = find(stimulusTrain(i,:)) * o.dt;
-end
-
-stimulusTrain = conv2(stimulusTrain,epsp);
 
 
 

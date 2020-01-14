@@ -1,4 +1,5 @@
 function plot_correlation(o)
+% Plot the correlation between neurons
 
 bin_size = 10 % bin size in ms
 

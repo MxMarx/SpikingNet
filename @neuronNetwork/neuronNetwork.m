@@ -4,7 +4,7 @@ classdef neuronNetwork < handle
     
     properties
         
-        DLM = [];
+        stimulusMatrix = [];
         stimulusTrain = [];
         
         %% Set the options
@@ -18,6 +18,7 @@ classdef neuronNetwork < handle
         
         % Number of clusters
         clusters = 1;
+        clusterIndex = [];
         
         % p_ee within cluster / p_ee between cluster
         cluster_p_ratio = 2.5;

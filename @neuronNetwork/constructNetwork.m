@@ -1,4 +1,24 @@
 function o = constructNetwork(o,varargin)
+%{
+Make the weight matrix.
+o = constructNetwork()
+
+o = constructNetwork('type', 'clustered')
+    Discrete clusters of neurons. Set cluster_p_ratio to the ratio of
+    in-cluster/out-cluster connections.
+
+o = constructNetwork('type', 'ring')
+    Continuous ring on neurons. Set cluster_p_ratio to the ratio of
+    in-ring/out-ring connections.
+
+o = constructNetwork('type', 'sheet')
+    2-dimensional local connectivity
+
+o = constructNetwork('type', 'WattsStrogatz')
+o = constructNetwork('type', 'BarabasiAlbert')
+
+Visualize the weight matrix with o.plot_weights()
+%}
 
 p = inputParser;
 p.addParameter('type','clustered');
@@ -40,6 +60,7 @@ switch p.Results.type
         % Set the clusters
         edges = round(linspace(1,o.Ne,o.clusters + 1));
         for i = 1:o.clusters
+            o.clusterIndex(edges(i):edges(i+1)) = i;
             connectMask(edges(i):edges(i+1), edges(i):edges(i+1)) = in_cluster_p;
             weightsMask(edges(i):edges(i+1), edges(i):edges(i+1)) = o.W_ee * o.cluster_w_ratio;
         end
@@ -75,12 +96,12 @@ switch p.Results.type
 end
 
 
-% W(o.excitatory_idx, o.inhibitory_idx) = (rand(o.Ne,o.Ni) < o.p_ei)      .* exprnd(o.W_ei,o.Ne,o.Ni);
-% W(o.inhibitory_idx, o.excitatory_idx) = (rand(o.Ni,o.Ne) < o.p_ie)      .* -exprnd(-o.W_ie,o.Ni,o.Ne);
-% W(o.inhibitory_idx, o.inhibitory_idx) = (rand(o.Ni,o.Ni) < o.p_ii)      .* -exprnd(-o.W_ii,o.Ni,o.Ni);
-W(o.excitatory_idx, o.inhibitory_idx) = (rand(o.Ne,o.Ni) < o.p_ei)      .* o.W_ei;
-W(o.inhibitory_idx, o.excitatory_idx) = (rand(o.Ni,o.Ne) < o.p_ie)      .* --o.W_ie;
-W(o.inhibitory_idx, o.inhibitory_idx) = (rand(o.Ni,o.Ni) < o.p_ii)      .* --o.W_ii;
+W(o.excitatory_idx, o.inhibitory_idx) = (rand(o.Ne,o.Ni) < o.p_ei)      .* exprnd(o.W_ei,o.Ne,o.Ni);
+W(o.inhibitory_idx, o.excitatory_idx) = (rand(o.Ni,o.Ne) < o.p_ie)      .* -exprnd(-o.W_ie,o.Ni,o.Ne);
+W(o.inhibitory_idx, o.inhibitory_idx) = (rand(o.Ni,o.Ni) < o.p_ii)      .* -exprnd(-o.W_ii,o.Ni,o.Ni);
+% W(o.excitatory_idx, o.inhibitory_idx) = (rand(o.Ne,o.Ni) < o.p_ei)      .* o.W_ei;
+% W(o.inhibitory_idx, o.excitatory_idx) = (rand(o.Ni,o.Ne) < o.p_ie)      .* --o.W_ie;
+% W(o.inhibitory_idx, o.inhibitory_idx) = (rand(o.Ni,o.Ni) < o.p_ii)      .* --o.W_ii;
 
 % Get rid of the diagonal, neurons can't connect to themselves
 W(1:length(W)+1:numel(W)) = 0;

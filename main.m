@@ -1,33 +1,49 @@
+%% Get the input from DLM
+raster = ExtractRaster()
+
+%% Simulate LMAN from the first two DLM input trains
+% raster(1) = directed
+% raster(2) = undirected
+
 for j = 1:2
-    rng(1)
+    rng(20) % reset the random number generator
     o = neuronNetwork;
-    o.p_ee = 20
+    
+    % any parameters not set will be the defaults defined in neuronNetwork.m
+    % see neuronNetwork.m for parameter definitions
+    o.p_ee = 10
     o.p_ii = 4;
-    o.p_ie = 80;
+    o.p_ie = 60;
     o.p_ei = 12
-    o.V_reset = -.5
-    % raster = ExtractRaster()
-    o.refractory = 1;
-    o.mu_e_range = [.8 .9];
-    o.mu_i_range = [.7 .9];
+    o.V_reset = 0
+    o.refractory = .2;
+    o.mu_e_range = [.85];
+    o.mu_i_range = [.85, .9];
     o.dt = .2;
     o.W_ee = .1;
-    o.W_ii = -.4;
+    o.W_ii = -.2;
     o.W_ei = .1
-    o.W_ie = -.2
+    o.W_ie = -.3
     o.N = 1000;
-    o.cluster_p_ratio = 16;
+    o.cluster_p_ratio = 1;
     o.clusters = 8;
     o.cluster_w_ratio = 1;
-    o.t_span = 8959;
-
+    o.t_span = (630+10)*10-1;
+    o.tau2_e = 3
+    
+    % Make the weight matrix
     o.constructNetwork('type','clustered')
     
-    o.DLM = raster(j).DLM;
+    % Generate the input data from DLM
+    o.generateStimulusTrain(raster(j).DLM)
     
+    % Simulate the network
     o.simulateNetwork
-    o.plot_raster('sort','none')
+    
+    o.plot_raster
     drawnow
+    
+    % Save the LMAN ISI
     ISI = [];
     for i = o.excitatory_idx
         ISI = [ISI diff(o.spikes{i})];
@@ -38,13 +54,35 @@ end
 
 
 
+plot(epsp)
+hold on
+plot(ipsp)
+
+%% Plot ISI distribution
 figure
 g = gramm('x', LMANISI,'color', {'Directed','Undirected'})
 g.stat_bin('edges',0:1:100,'normalization','pdf','geom','stairs','fill','transparent')
 g.set_names('x','LMAN ISI (ms)','y','Probability density','color','Song type')
+g.set_text_options('base_size',12)
+% g.axe_property('XScale','log')
+g.set_title('Random Network')
 g.draw
 
 
+
+figure
+g = gramm('x', LMANISI,'color', {'Directed','Undirected'})
+g.stat_bin('edges',logspace(.5,3,70),'normalization','pdf','geom','stairs','fill','transparent')
+g.set_names('x','LMAN ISI (ms)','y','Probability density','color','Song type')
+g.set_text_options('base_size',12)
+g.set_title('Random Network')
+g.axe_property('XScale','log')
+g.draw
+
+
+
+
+%% Plot DLM Input
 figure
 g = gramm('x',fliplr(o.stimulusTrain))
 g.geom_raster
@@ -58,36 +96,24 @@ g.draw
 
 
 
-figure
-g = gramm('x', LMANISI,'color', {'Directed','Undirected'})
-g.stat_bin('edges',0:1:100,'normalization','count','geom','stairs','fill','transparent')
-g.set_names('x','LMAN ISI (ms)','y','Count','color','Song type')
-g.draw
-g.facet_axes_handles.Color = [0,0,0,0]
-g.facet_axes_handles.XColor = 'w'
-g.facet_axes_handles.YColor = 'w'
-for i = findall(gcf,'Type','text')'
-    i.Color = 'w';
-end
-export_fig('Gramm-ISI.png', '-m3','-trans')
-
 
 
 g = o.plot_raster('sort','none')
+
+%% Make everything transparent and plack
 g.facet_axes_handles.Color = [0,0,0,0]
 g.facet_axes_handles.XColor = 'w'
 g.facet_axes_handles.YColor = 'w'
 for i = findall(gcf,'Type','text')'
     i.Color = 'w';
 end
-export_fig('Gramm-Raster-Directed.png', '-m3','-trans')
-
-
-
-
-
 % export_fig('LMAN ISI Distribution.png','-m3')
-%
+
+
+
+
+
+%% Plot other stuff
 % o.saveFigures = true;
 % o.saveDirectory = 'C:\Users\russe\OneDrive - UW\Grad School\Fairhall Lab\figures\Stimulation\ring_mu.92_3'
 % o.plot_raster('sort','none')
@@ -95,49 +121,5 @@ export_fig('Gramm-Raster-Directed.png', '-m3','-trans')
 % o.plot_mean_voltage
 % o.plot_periodogram
 % o.plot_correlation
-export_fig('AreaX-CorrelationGramm-Directed.png', '-m3','-trans')
+% export_fig('AreaX-CorrelationGramm-Directed.png', '-m3','-trans')
 
-% close all
-%
-%
-%
-% o.plot_weights
-% o.plot_degree
-%
-% o.plot_raster('sort','none')
-% o.plot_periodogram
-% o.plot_mean_voltage
-% o.plot_correlation
-%
-% close all
-%
-%
-%
-% g = digraph(o.W(o.excitatory_idx,o.excitatory_idx))
-% figure
-% h = plot(g)
-% h.layout('force','WeightEffect','none','Iterations',500)
-% h.layout('circle')
-%
-% h.EdgeAlpha = .01
-%
-%
-% histogram(indegree(digraph(o.W(o.excitatory_idx,o.excitatory_idx))))
-% histogram(outdegree(digraph(o.W(o.excitatory_idx,o.excitatory_idx))))
-%
-%
-%
-% figure('Color','k')
-% idx = 1:200
-% g = digraph(o.W(idx,idx))
-% h = plot(g)
-% colormap(plasma)
-% box off; axis off
-% caxis([-.2,.8])
-% h.EdgeAlpha = .2
-%
-% for i = 1:10:length(o.voltageHistory)
-%     h.NodeCData = o.voltageHistory(idx,i);
-%     h.EdgeCData = 6*(o.syn_out_history(g.Edges.EndNodes(:,1) + idx(1),i)) - .3;
-%     drawnow
-% end
