@@ -1,23 +1,5 @@
-function o = simulateNetwork(o)
+function [o, V, syn_out, syn_idx, refract_counter]  = simulateNetwork(o,V, syn_out, syn_idx, refract_counter)
 % rng('default')
-
-
-%% Now simulate the dyamics with Euler!
-spike_timespan = 0:o.dt:30;
-epsp = (1/(o.tau2_e-o.tau1))*(exp(-spike_timespan/o.tau2_e) - exp(-spike_timespan/o.tau1)); % Excitatory output waveform
-ipsp = (1/(o.tau2_i-o.tau1))*(exp(-spike_timespan/o.tau2_i) - exp(-spike_timespan/o.tau1)); % Inhibitory output waveform
-epsp(end+1) = 0;
-ipsp(end+1) = 0;
-
-%define vector of inital cell voltages:
-V = rand(length(o.W),1)+.2;
-
-%define vector of cells' synaptic output. This should be the length of
-%f_template:
-syn_out = zeros(length(o.W), 1);
-
-%initialize synaptic input vector ON TO each cell:
-syn_idx = repmat(length(epsp), length(o.W), 1);
 
 % build matrix to save cell voltages:
 o.voltageHistory = zeros(length(o.W),round(o.t_span/o.dt));
@@ -25,10 +7,33 @@ o.voltageHistory = zeros(length(o.W),round(o.t_span/o.dt));
 o.syn_out_history = zeros(length(o.W),round(o.t_span/o.dt));
 % initialize matrix to save spike times:
 o.spikes = false(length(o.W),floor(o.t_span/o.dt));
+    
+    
+%% Now simulate the dyamics with Euler!
+spike_timespan = 0:o.dt:30;
+epsp = (1/(o.tau2_e-o.tau1))*(exp(-spike_timespan/o.tau2_e) - exp(-spike_timespan/o.tau1)); % Excitatory output waveform
+ipsp = (1/(o.tau2_i-o.tau1))*(exp(-spike_timespan/o.tau2_i) - exp(-spike_timespan/o.tau1)); % Inhibitory output waveform
+epsp(end+1) = 0;
+ipsp(end+1) = 0;
 
-%add in o.refractory counter:
-refract_counter = zeros(length(o.W),1);
+if nargin < 2
+    %define vector of inital cell voltages:
+    V = rand(length(o.W),1);
+    % V = zeros(length(o.W),1)+.2;
+    
+    
+    %define vector of cells' synaptic output. This should be the length of
+    %f_template:
+    syn_out = zeros(length(o.W), 1);
+    
+    %initialize synaptic input vector ON TO each cell:
+    syn_idx = repmat(length(epsp), length(o.W), 1);
+    
 
+    %add in o.refractory counter:
+%     refract_counter = zeros(length(o.W),1);
+    refract_counter = randi(25,length(o.W),1)-10;
+end
 %now run the dynamics:
 
 

@@ -4,6 +4,11 @@ classdef neuronNetwork < handle
     
     properties
         
+        % ratio of mean to std for the out degree
+        sigma = 1
+        % Coordinates of the neurons in space
+        neuronCoordinates = [];
+        
         stimulusMatrix = [];
         stimulusTrain = [];
         
@@ -12,6 +17,7 @@ classdef neuronNetwork < handle
         % Save figures
         saveFigures = false
         saveDirectory = 'C:\Users\russe\OneDrive - UW\Grad School\Fairhall Lab\Figures'
+        
         % Total number of neurons
         N = 1000;
         proportion_e = 0.75;
@@ -67,7 +73,7 @@ classdef neuronNetwork < handle
         dt = .2; %time step in units of ms.
         
         %build the additive waveform that follows a spike:
-        tau1 = 0.5;
+        tau1 = 1;
         tau2_e = 3;
         tau2_i = 2;
         

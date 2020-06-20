@@ -9,9 +9,6 @@ for i = 1:length(DLM)
 end
 
 inputClusters = 8;
-
-clustedInput = {};
-
 time_padding = 10;
 
 for i = 1:inputClusters

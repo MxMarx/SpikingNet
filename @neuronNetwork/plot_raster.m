@@ -1,7 +1,7 @@
 function g = plot_raster(o,varargin)
 % Make a raster plot
 p = inputParser;
-p.addParameter('sort','none', @(x) any(validatestring(x,{'cluster','rate','none'})));
+p.addParameter('sort','none', @(x) any(validatestring(x,{'cluster','rate','none','distance'})));
 p.parse(varargin{:});
 
 switch p.Results.sort
@@ -18,6 +18,10 @@ switch p.Results.sort
         [~, sortOrder] = sort(cellfun(@length,o.spikes));
     case 'none'
         sortOrder = 1:o.N;
+    case 'distance'
+        dist = vecnorm(o.neuronCoordinates,2,2);
+        [~, sortOrder] = sort(dist);
+        sortOrder = [sortOrder' length(sortOrder)+1:o.N];
 end
 
 color = zeros(o.N,1);
@@ -32,6 +36,7 @@ figure('Position',[10,10,1500,800])
 g = gramm('x',o.spikes(sortOrder),'color',color(sortOrder));
 g.set_continuous_color('active',0);
 g.geom_raster('geom','point');
+% g.geom_raster('geom','line');
 g.set_point_options('base_size',3);
 g.set_order_options('color',-1)
 g.set_names('x','Time (ms)','y','Cell Index','color','Cluster');

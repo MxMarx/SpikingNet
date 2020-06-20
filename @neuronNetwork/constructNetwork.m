@@ -21,7 +21,11 @@ Visualize the weight matrix with o.plot_weights()
 %}
 
 p = inputParser;
-p.addParameter('type','clustered');
+p.addParameter('type','clustered', @(x) any(validatestring(x,{'clustered','ring','WattsStrogatz','BarabasiAlbert','sphere'})));
+p.addParameter('dimensions',3);
+p.addParameter('networkRadius',5);
+p.addParameter('neuronRadius',1);
+
 p.parse(varargin{:});
 
 %% Make the network
@@ -30,15 +34,32 @@ o.Ni = o.N - o.Ne;
 o.excitatory_idx = 1:o.Ne;
 o.inhibitory_idx = o.Ne+1:o.N;
 
-% Nornalize connection probability for network size
-o.p_ee = o.p_ee / o.N;
-o.p_ei = o.p_ei / o.N;
-o.p_ie = o.p_ie / o.N;
-o.p_ii = o.p_ii / o.N;
+
+% Balance the weights
+o.W_ee = o.W_ee / (o.p_ee);
+o.W_ei = o.W_ei / (o.p_ei);
+o.W_ie = o.W_ie / (o.p_ie);
+o.W_ii = o.W_ii / (o.p_ii);
+
+% % Turn out-degree to in-degree
+% o.p_ie = o.Ne * o.p_ie / o.Ni;
+% o.p_ei = o.Ni * o.p_ei / o.Ne;
+
+
+
+% Turn in-degree into in-probability
+% o.p_ee = o.p_ee / o.Ne;
+% o.p_ei = o.p_ei / o.Ne;
+% o.p_ie = o.p_ie / o.Ni;
+% o.p_ii = o.p_ii / o.Ni;
+
+
+
+
 
 
 % Make the connectivity matrix
-W = sparse(o.N);
+W = sparse(zeros(o.N));
 
 
 % make the within-cluster connectivity R times greater than
@@ -64,9 +85,9 @@ switch p.Results.type
             connectMask(edges(i):edges(i+1), edges(i):edges(i+1)) = in_cluster_p;
             weightsMask(edges(i):edges(i+1), edges(i):edges(i+1)) = o.W_ee * o.cluster_w_ratio;
         end
-%         W(o.excitatory_idx, o.excitatory_idx) = (rand(o.Ne,o.Ne) < connectMask) .* exprnd(weightsMask);
+        %         W(o.excitatory_idx, o.excitatory_idx) = (rand(o.Ne,o.Ne) < connectMask) .* exprnd(weightsMask);
         W(o.excitatory_idx, o.excitatory_idx) = (rand(o.Ne,o.Ne) < connectMask) .* (weightsMask);
-
+        
     case 'ring'
         connectMask = repmat(out_cluster_p, o.Ne); % mask of connection probabilities
         weightsMask = repmat(o.W_ee,        o.Ne); % mask of weights
@@ -76,32 +97,107 @@ switch p.Results.type
         connectMask(mask) = in_cluster_p;
         weightsMask(mask) = o.W_ee * o.cluster_w_ratio;
         W(o.excitatory_idx, o.excitatory_idx) = (rand(o.Ne,o.Ne) < connectMask) .* exprnd(weightsMask);
-  
-    case 'sheet'
-        x = repmat( [1:sqrt(o.Ne)]', floor(sqrt(o.Ne)),1);
-        y = repelem([1:sqrt(o.Ne)]', floor(sqrt(o.Ne)),1);
-        dist = pdist2([x,y],[x,y]);
-        dist = rescale(-dist).^2;
-        dist = dist * o.p_ee / mean(dist,'all');
-        connectMask(1:floor(sqrt(o.Ne))^2, 1:floor(sqrt(o.Ne))^2) = dist;
-        W(o.excitatory_idx, o.excitatory_idx) = (rand(o.Ne,o.Ne) < connectMask) .* exprnd(weightsMask);
-
+        
     case 'WattsStrogatz'
         beta = o.cluster_p_ratio / (o.cluster_p_ratio + 1);
         W(o.excitatory_idx, o.excitatory_idx) = WattsStrogatz(o.Ne, round(o.p_ee*o.Ne), beta) .* exprnd(weightsMask);
-   
+        
     case 'BarabasiAlbert'
         beta = .1;
         W(o.excitatory_idx, o.excitatory_idx) =BarabasiAlbert(o.Ne, round(o.p_ee*o.Ne), beta) .* exprnd(weightsMask);
+        
+    case 'sphere'
+        % Generate points in a sphere
+        % https://www.mathworks.com/matlabcentral/fileexchange/9443-random-points-in-an-n-dimensional-hypersphere?s_tid=answers_rc2-3_p6_MLT
+        X = randn(o.Ne, p.Results.dimensions);
+        s2 = sum(X.^2,2);
+        o.neuronCoordinates = X.*repmat(p.Results.networkRadius*(gammainc(s2/2,p.Results.dimensions/2).^(1/p.Results.dimensions))./sqrt(s2),1, p.Results.dimensions);
+        
+        % Get the distance between all the points, turn this into relative probability of a synapse
+        dist = pdist2(o.neuronCoordinates, o.neuronCoordinates);
+        
+        % P_ij is the *relative* probability of neuron i connecting to neuron j.
+        % A guassian distribution seemed like a good starting point.
+        P_ij = normpdf(dist, 0, p.Results.neuronRadius);
+        
+        % Get rid of the diagonal
+        P_ij = P_ij .* ~eye(size(P_ij));
+        
+        
+        for i = 1:o.Ne
+%             k = poissrnd(o.p_ee);
+            k = normrnd(o.p_ee,  sqrt(o.p_ee) * o.sigma);
+            k = max(round(k),0);
+%             idx = datasample(1:o.Ne, k, 'Replace', false, 'Weights', P_ij(:,i));
+            idx = datasample(1:o.Ne, k, 'Replace', false, 'Weights', P_ij(:,i) ./ (sum(W(1:o.Ne,1:o.Ne) > 0,2) + 1));
+            W(idx, i) = o.W_ee;
+        end
+        
 end
 
 
-W(o.excitatory_idx, o.inhibitory_idx) = (rand(o.Ne,o.Ni) < o.p_ei)      .* exprnd(o.W_ei,o.Ne,o.Ni);
-W(o.inhibitory_idx, o.excitatory_idx) = (rand(o.Ni,o.Ne) < o.p_ie)      .* -exprnd(-o.W_ie,o.Ni,o.Ne);
-W(o.inhibitory_idx, o.inhibitory_idx) = (rand(o.Ni,o.Ni) < o.p_ii)      .* -exprnd(-o.W_ii,o.Ni,o.Ni);
-% W(o.excitatory_idx, o.inhibitory_idx) = (rand(o.Ne,o.Ni) < o.p_ei)      .* o.W_ei;
-% W(o.inhibitory_idx, o.excitatory_idx) = (rand(o.Ni,o.Ne) < o.p_ie)      .* --o.W_ie;
-% W(o.inhibitory_idx, o.inhibitory_idx) = (rand(o.Ni,o.Ni) < o.p_ii)      .* --o.W_ii;
+% W(o.excitatory_idx, o.inhibitory_idx) = (rand(o.Ne,o.Ni) < o.p_ei)      .* exprnd(o.W_ei,o.Ne,o.Ni);
+% W(o.inhibitory_idx, o.excitatory_idx) = (rand(o.Ni,o.Ne) < o.p_ie)      .* -exprnd(-o.W_ie,o.Ni,o.Ne);
+% W(o.inhibitory_idx, o.inhibitory_idx) = (rand(o.Ni,o.Ni) < o.p_ii)      .* -exprnd(-o.W_ii,o.Ni,o.Ni);
+% W(o.excitatory_idx, o.inhibitory_idx) = (rand(o.Ne,o.Ni) < o.p_ei / o.Ni)      .* o.W_ei;
+% W(o.inhibitory_idx, o.excitatory_idx) = (rand(o.Ni,o.Ne) < o.p_ie / o.Ne)      .* o.W_ie;
+% W(o.inhibitory_idx, o.inhibitory_idx) = (rand(o.Ni,o.Ni) < o.p_ii / o.Ni)      .* o.W_ii;
+
+% % Inhibitory to excitatory
+% for i = o.inhibitory_idx
+% %     k = poissrnd(o.p_ie);
+%     k = normrnd(o.p_ie, sqrt(o.p_ie) * o.sigma);
+%     k = max(round(k),0);
+%     idx = datasample(o.excitatory_idx, k, 'Replace', false);
+%     W(i, idx) = o.W_ie;
+% end
+
+% % Excitatory to inhibitatory
+% for i = o.excitatory_idx
+% %     k = poissrnd(o.p_ei);
+%     k = normrnd(o.p_ei,  sqrt(o.p_ei) * o.sigma);
+%     k = max(round(k),0);
+%     idx = datasample(o.inhibitory_idx, k, 'Replace', false);
+%     W(i, idx) = o.W_ei;
+% end
+% 
+% % Inhibitory to inhibitatory
+% for i = o.inhibitory_idx
+% %     k = poissrnd(o.p_ii);
+%     k = normrnd(o.p_ii,  sqrt(o.p_ii) * o.sigma);
+%     k = max(round(k),0);
+%     idx = datasample(o.inhibitory_idx, k, 'Replace', false);
+%     W(i, idx) = o.W_ii;
+% end
+
+% Inhibitory to excitatory
+for i = o.excitatory_idx
+%     k = poissrnd(o.p_ie);
+    k = normrnd(o.p_ie, sqrt(o.p_ie) * o.sigma);
+    k = max(round(k),0);
+    idx = datasample(o.inhibitory_idx, k, 'Replace', false);
+    W(idx, i) = o.W_ie;
+end
+
+% Excitatory to inhibitatory
+for i = o.inhibitory_idx
+%     k = poissrnd(o.p_ei);
+    k = normrnd(o.p_ei,  sqrt(o.p_ei) * o.sigma);
+    k = max(round(k),0);
+    idx = datasample(o.excitatory_idx, k, 'Replace', false);
+    W(idx, i) = o.W_ei;
+end
+
+% Inhibitory to inhibitatory
+for i = o.inhibitory_idx
+%     k = poissrnd(o.p_ii);
+    k = normrnd(o.p_ii,  sqrt(o.p_ii) * o.sigma);
+    k = max(round(k),0);
+    idx = datasample(o.inhibitory_idx, k, 'Replace', false);
+    W(idx, i) = o.W_ii;
+end
+
+
 
 % Get rid of the diagonal, neurons can't connect to themselves
 W(1:length(W)+1:numel(W)) = 0;
